@@ -5,54 +5,22 @@
     ██╔═══╝ ██║   ██║██║   ██║██║     ██╔══██║██╔══██╗██║   ██║██║██║  ██║
     ██║     ╚██████╔╝╚██████╔╝███████╗██║  ██║██║  ██║╚██████╔╝██║██████╔╝
     ╚═╝      ╚═════╝  ╚═════╝ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝╚═════╝ 
-                                                                          
+    
     Nome: POOLAROID
-    Funções: Auto Steal | Teleport | Speed | Noclip | Full Bright | Anti-Kick
-    Compatível: Delta Mobile / Delta Executor
+    Versão: Stealth (sem hooks perigosos)
 ]]
 
--- ==================== PROTEÇÃO ANTI-KICK AVANÇADA ====================
-pcall(function()
-    -- Bloqueia Kick usando hookfunction (método mais forte)
-    if hookfunction and game.Players and game.Players.LocalPlayer then
-        local originalKick = game.Players.LocalPlayer.Kick
-        hookfunction(originalKick, function() 
-            warn("[POOLAROID] Tentativa de Kick bloqueada (hookfunction)!")
-            return nil 
-        end)
-        print("[POOLAROID] Anti-Kick AVANÇADO ativado.")
-    end
-end)
-
--- Fallback: proteção via __namecall (caso o de cima falhe)
-pcall(function()
-    local mt = getrawmetatable(game)
-    local oldNamecall = mt.__namecall
-    setreadonly(mt, false)
-    
-    mt.__namecall = newcclosure(function(self, ...)
-        local method = getnamecallmethod()
-        if method == "Kick" then
-            warn("[POOLAROID] Tentativa de Kick bloqueada (__namecall)!")
-            return
-        end
-        return oldNamecall(self, ...)
-    end)
-    
-    setreadonly(mt, true)
-end)
--- ======================================================================
+print("[POOLAROID] Iniciando...")
 
 -- ==================== SERVIÇOS ====================
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
-local TweenService = game:GetService("TweenService")
 local VirtualUser = game:GetService("VirtualUser")
 
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
+print("[POOLAROID] LocalPlayer: " .. LocalPlayer.Name)
 
 -- ==================== CONFIGURAÇÕES ====================
 local POOLAROID = {
@@ -87,6 +55,7 @@ ScreenGui.Name = "POOLAROID"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+print("[POOLAROID] GUI criada")
 
 local ToggleBtn = Instance.new("TextButton")
 ToggleBtn.Size = UDim2.new(0, 70, 0, 70)
@@ -182,7 +151,7 @@ local function criarBotao(nome, cor, callback)
     return btn
 end
 
--- ==================== FUNÇÕES DO SCRIPT ====================
+-- ==================== FUNÇÕES ====================
 
 local function toggleSpeed(btn)
     POOLAROID.SpeedEnabled = not POOLAROID.SpeedEnabled
@@ -261,6 +230,7 @@ local function toggleAutoSteal(btn)
     btn.BackgroundColor3 = POOLAROID.AutoSteal and Color3.fromRGB(0, 150, 100) or Color3.fromRGB(40, 40, 55)
 end
 
+-- Loop Auto Steal (SEM fireproximityprompt por segurança)
 task.spawn(function()
     while task.wait(POOLAROID.AutoStealDelay) do
         if POOLAROID.AutoSteal then
@@ -269,29 +239,12 @@ task.spawn(function()
             
             if ovo and hrp then
                 hrp.CFrame = CFrame.new(ovo.Position + Vector3.new(0, 3, 0))
-                
-                local prompt = ovo:FindFirstChildOfClass("ProximityPrompt")
-                if prompt then
-                    fireproximityprompt(prompt)
-                end
-                
-                local clickDetector = ovo:FindFirstChildOfClass("ClickDetector")
-                if clickDetector then
-                    fireclickdetector(clickDetector)
-                end
-                
-                for _, child in pairs(ovo:GetDescendants()) do
-                    if child:IsA("ProximityPrompt") then
-                        fireproximityprompt(child)
-                    elseif child:IsA("ClickDetector") then
-                        fireclickdetector(child)
-                    end
-                end
             end
         end
     end
 end)
 
+-- Loop Noclip
 RunService.Stepped:Connect(function()
     if POOLAROID.NoclipEnabled then
         local char = getCharacter()
@@ -305,12 +258,15 @@ RunService.Stepped:Connect(function()
     end
 end)
 
+-- Anti-AFK
 LocalPlayer.Idled:Connect(function()
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new())
+    pcall(function()
+        VirtualUser:CaptureController()
+        VirtualUser:ClickButton2(Vector2.new())
+    end)
 end)
 
--- ==================== BOTÕES DO MENU ====================
+-- ==================== BOTÕES ====================
 
 criarBotao("🥚 Auto Steal: OFF", Color3.fromRGB(40, 40, 55), toggleAutoSteal)
 criarBotao("🎯 Ir até o Ovo", Color3.fromRGB(40, 40, 55), teleportParaOvo)
@@ -327,7 +283,7 @@ ToggleBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = not MainFrame.Visible
 end)
 
--- ==================== DRAG MOBILE ====================
+-- ==================== DRAG ====================
 local dragging, dragStart, startPos
 
 ToggleBtn.InputBegan:Connect(function(input)
@@ -371,6 +327,5 @@ end)
 
 print("╔═══════════════════════════════════╗")
 print("║   🎯 POOLAROID CARREGADO          ║")
-print("║   🛡️ Anti-Kick: ATIVADO          ║")
 print("║   Toque em POOLAROID para abrir   ║")
 print("╚═══════════════════════════════════╝")
