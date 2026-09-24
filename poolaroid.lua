@@ -11,8 +11,20 @@
     Compatível: Delta Mobile / Delta Executor
 ]]
 
--- ==================== PROTEÇÃO ANTI-KICK ====================
--- Tenta bloquear chamadas de Kick() feitas pelo jogo
+-- ==================== PROTEÇÃO ANTI-KICK AVANÇADA ====================
+pcall(function()
+    -- Bloqueia Kick usando hookfunction (método mais forte)
+    if hookfunction and game.Players and game.Players.LocalPlayer then
+        local originalKick = game.Players.LocalPlayer.Kick
+        hookfunction(originalKick, function() 
+            warn("[POOLAROID] Tentativa de Kick bloqueada (hookfunction)!")
+            return nil 
+        end)
+        print("[POOLAROID] Anti-Kick AVANÇADO ativado.")
+    end
+end)
+
+-- Fallback: proteção via __namecall (caso o de cima falhe)
 pcall(function()
     local mt = getrawmetatable(game)
     local oldNamecall = mt.__namecall
@@ -20,17 +32,16 @@ pcall(function()
     
     mt.__namecall = newcclosure(function(self, ...)
         local method = getnamecallmethod()
-        if method == "Kick" or tostring(self) == "Kick" then
-            warn("[POOLAROID] Tentativa de Kick bloqueada!")
+        if method == "Kick" then
+            warn("[POOLAROID] Tentativa de Kick bloqueada (__namecall)!")
             return
         end
         return oldNamecall(self, ...)
     end)
     
     setreadonly(mt, true)
-    print("[POOLAROID] Proteção Anti-Kick ativada.")
 end)
--- ===========================================================
+-- ======================================================================
 
 -- ==================== SERVIÇOS ====================
 local Players = game:GetService("Players")
